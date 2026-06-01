@@ -1,20 +1,35 @@
-version: "3"
 services:
   mongo:
     image: "mongo:latest"
+    restart: unless-stopped
     environment:
-      - MONGO_INITDB_ROOT_USERNAME=root
-      - MONGO_INITDB_ROOT_PASSWORD=password
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_PASSWORD}
+    volumes:
+      # mongo 데이터 영속화 (컨테이너 재생성에도 데이터 유지)
+      - mongodata:/data/db
   growthbook:
     image: "growthbook/growthbook:latest"
+    restart: unless-stopped
     ports:
-      - "3000:3000"
-      - "3100:3100"
+      # 호스트 루프백에만 바인딩 — 포트 직접 개방 안 함, Cloudflare Tunnel 통해서만 외부 노출
+      # front 는 host 3001 로 매핑(컨테이너 내부는 3000) — ga4-ops 대시보드의 :3000 과 분리
+      - "127.0.0.1:3001:3000"
+      - "127.0.0.1:3100:3100"
     depends_on:
       - mongo
     environment:
-      - MONGODB_URI=mongodb://root:password@mongo:27017/
+      - MONGODB_URI=mongodb://${MONGO_USERNAME}:${MONGO_PASSWORD}@mongo:27017/
+      # 텔레메트리 차단 (SECURITY_AUDIT.md §1.1)
+      - DISABLE_TELEMETRY=true
+      # 시크릿 (.env)
+      - JWT_SECRET=${JWT_SECRET}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      # 외부 노출 URL (Cloudflare Tunnel 호스트네임)
+      - APP_ORIGIN=${APP_ORIGIN}
+      - API_HOST=${API_HOST}
     volumes:
       - uploads:/usr/local/src/app/packages/back-end/uploads
 volumes:
   uploads:
+  mongodata:
