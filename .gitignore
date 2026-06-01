@@ -3,6 +3,14 @@ node_modules
 *.log
 .idea
 .env.local
+.env
+.env.*
+!.env.example
+cloudflared/.cf_api_token
+cloudflared/*.json
+cloudflared/*.log
+cloudflared/config.yml
+*.pem
 dist
 .next
 out
